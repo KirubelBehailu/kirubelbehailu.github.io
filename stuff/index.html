@@ -393,17 +393,89 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- Account + sign-in ---------- */
+.hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.hero-row > div { min-width: 0; }
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%; flex: none; margin-top: 2px;
+  display: grid; place-items: center; font: 600 16px/1 var(--font-display);
+  background: var(--accent); color: var(--accent-ink); text-transform: uppercase;
+}
+@media (min-width: 700px) { .avatar { margin-top: 8px; } }
+.avatar.big { width: 72px; height: 72px; font-size: 30px; margin: 0 auto; }
+.account { display: flex; flex-direction: column; gap: 22px; padding: 12px 16px 0; max-width: 520px; margin: 0 auto; text-align: center; }
+.account h2 { margin: 10px 0 0; font: 600 20px/1.25 var(--font-display); overflow-wrap: anywhere; }
+.account .sub { margin-top: 4px; }
+.plain-btn { background: var(--surface); border-radius: var(--r-group); height: 50px; font-size: 17px; width: 100%; color: var(--accent); }
+.plain-btn.danger { color: var(--danger); }
+.hint { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+body.authing #bar, body.authing #view { display: none; }
+#auth {
+  position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto;
+  display: grid; place-items: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+.auth-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 26px; }
+.auth-mark { position: relative; display: grid; place-items: center; height: 120px; }
+.auth-mark .loader-glow { width: 200px; height: 100px; opacity: .22; animation: spin 3s linear infinite; }
+.auth-mark .word { font-size: 64px; }
+.auth-step { display: flex; flex-direction: column; gap: 16px; }
+.auth-step h1 { margin: 0; font: 700 28px/1.15 var(--font-display); letter-spacing: -.02em; text-align: center; }
+.auth-step .lede { margin: -6px 0 4px; color: var(--muted); font-size: 16px; text-align: center; text-wrap: balance; }
+.auth-step .lede strong { color: var(--fg); font-weight: 600; overflow-wrap: anywhere; }
+.auth-step form { display: flex; flex-direction: column; gap: 12px; }
+.auth-step .field input { text-align: left; }
+#a-code::placeholder { letter-spacing: normal; font-family: var(--font-text); }
+#a-code { letter-spacing: .3em; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.cta[disabled], .txt[disabled] { opacity: .5; pointer-events: none; }
+.auth-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+.linkbtn[disabled] { color: var(--muted); pointer-events: none; }
+
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: turn .7s linear infinite; display: inline-block; vertical-align: -3px; }
+@keyframes turn { to { transform: rotate(360deg); } }
+.loading-grid { display: grid; place-items: center; padding: 64px 0; color: var(--muted); }
 </style>
 </head>
 <body>
-
-
 <div id="loader" aria-hidden="true">
   <div class="loader-stack">
     <div class="loader-glow"></div>
     <p class="word"><span>s</span><span>t</span><span>u</span><span>f</span><span>f</span></p>
   </div>
 </div>
+
+<section id="auth" aria-label="Sign in" hidden>
+  <div class="auth-card">
+    <div class="auth-mark" aria-hidden="true"><div class="loader-glow"></div><p class="word">stuff</p></div>
+
+    <div class="auth-step" id="authStep1">
+      <h1>Sign in</h1>
+      <p class="lede">Enter your email and we’ll send you a sign-in link. New here? This creates your account.</p>
+      <form id="emailForm" novalidate>
+        <div class="group"><label class="field" for="a-email"><input id="a-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com" aria-label="Email"></label></div>
+        <button class="cta" type="submit" id="emailBtn">Continue</button>
+        <p class="err" id="emailErr" hidden></p>
+      </form>
+    </div>
+
+    <div class="auth-step" id="authStep2" hidden>
+      <h1>Check your email</h1>
+      <p class="lede">We sent a sign-in link to <strong id="sentTo"></strong>. Open it on this device.</p>
+      <form id="codeForm" novalidate>
+        <p class="sec-label" style="margin-left:16px">Or enter the code from the email</p>
+        <div class="group"><label class="field" for="a-code"><input id="a-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code" aria-label="Code from the email"></label></div>
+        <button class="cta" type="submit" id="codeBtn">Sign in</button>
+        <p class="err" id="codeErr" hidden></p>
+      </form>
+      <div class="auth-links">
+        <button class="linkbtn" type="button" data-act="resend" id="resendBtn">Resend email</button>
+        <button class="linkbtn" type="button" data-act="change-email">Use a different email</button>
+      </div>
+    </div>
+  </div>
+</section>
 
 <main id="view" aria-live="polite"></main>
 
@@ -430,9 +502,14 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1
 </section>
 <div id="toast" role="status"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script>
 (() => {
 'use strict';
+const SB_URL = 'https://ttgeeorxsijojzkvcdvn.supabase.co';
+const SB_KEY = 'sb_publishable_PDsgSoTPH-EyfKa3LZ8HLA_WHog2Q2u';
+const BUCKET = 'photos';
+
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -449,22 +526,17 @@ const ICONS = {
   chevR: '<path d="m9 18 6-6-6-6"/>',
   ext: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-  image: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  cloudOff: '<path d="m2 2 20 20"/><path d="M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.31-.2"/><path d="M21.53 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7 7 0 0 0 9.04 5.04"/>',
   shirt: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
   sneaker: '<path d="M2 17.5V12a1 1 0 0 1 1-1h.6c1.6 0 2.7-1 3.2-2.4l.5-1.4a1 1 0 0 1 1.3-.6l1.9.7c.7 2 2.6 3.4 4.8 3.6l3.6.4A3.4 3.4 0 0 1 22 14.7v2.8"/><path d="M2 17.5h20v.5a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 18z"/><path d="m10 9.6 1.4 1.4"/><path d="m12.2 8.6 1.4 1.4"/><path d="M2 14.5h7"/>',
   laptop: '<path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/>',
   phone: '<rect width="14" height="20" x="5" y="2" rx="3"/><path d="M12 18h.01"/>',
-  tablet: '<rect width="16" height="20" x="4" y="2" rx="2.5"/><path d="M12 18h.01"/>',
   sofa: '<path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"/><path d="M4 18v2"/><path d="M20 18v2"/><path d="M12 4v9"/>',
   chair: '<path d="M7 3h10a1 1 0 0 1 1 1v7H6V4a1 1 0 0 1 1-1z"/><path d="M5 11h14v3H5z"/><path d="M7 14v7"/><path d="M17 14v7"/>',
-  desk: '<path d="M2 8h20"/><path d="M4 8v12"/><path d="M20 8v12"/><path d="M13 8v7h7"/><path d="M15.5 11.5h2"/>',
   lamp: '<path d="M8 2h8l4 10H4L8 2Z"/><path d="M12 12v6"/><path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"/>',
-  shelf: '<rect width="18" height="18" x="3" y="3" rx="1"/><path d="M3 12h18"/><path d="M12 3v18"/>',
   watch: '<circle cx="12" cy="12" r="6"/><path d="M12 10v2l1 1"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/>',
   headphones: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
   speaker: '<rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/>',
-  disc: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/>',
-  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
   camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   drone: '<circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="m7 7 3 3"/><path d="m17 7-3 3"/><path d="m7 17 3-3"/><path d="m17 17-3-3"/><rect width="5" height="5" x="9.5" y="9.5" rx="1"/>',
   gamepad: '<path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 13h.01"/><path d="M18 11h.01"/><rect width="20" height="12" x="2" y="6" rx="4"/>',
@@ -478,141 +550,113 @@ const icon = (n, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24" fill="n
 const CAT_ICONS = ['shirt', 'sneaker', 'laptop', 'phone', 'sofa', 'chair', 'lamp', 'watch', 'headphones', 'speaker', 'camera', 'gamepad', 'book', 'bag', 'guitar', 'bike', 'drone', 'package'];
 const HUES = [212, 18, 262, 32, 46, 330, 192, 142, 0, 280];
 const CONDITIONS = ['New', 'Like new', 'Excellent', 'Good', 'Fair', 'Worn'];
+const STARTERS = [['Clothes', 'shirt', 212], ['Sneakers', 'sneaker', 18], ['Electronics', 'laptop', 262], ['Furniture', 'sofa', 32], ['Watches', 'watch', 46], ['Audio', 'headphones', 330]];
 
-/* ---------- Sample data ---------- */
 const hash = s => { let h = 5381; for (const c of String(s)) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return h; };
-const slug = s => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'item';
-const ebaySearch = (...p) => 'https://www.ebay.com/sch/i.html?_nkw=' + encodeURIComponent(p.filter(Boolean).join(' '));
-function seed() {
-  const cats = [
-    ['clothes', 'Clothes', 'shirt', 212], ['sneakers', 'Sneakers', 'sneaker', 18], ['electronics', 'Electronics', 'laptop', 262],
-    ['furniture', 'Furniture', 'sofa', 32], ['watches', 'Watches', 'watch', 46], ['audio', 'Audio', 'headphones', 330],
-    ['cameras', 'Cameras', 'camera', 192], ['games', 'Games', 'gamepad', 142]
-  ].map(([id, name, ic, hue]) => ({ id, name, icon: ic, hue }));
-  const raw = {
-    clothes: [
-      ['Heavyweight Crew Tee', 'Uniqlo U', '422992', '2024-03-02', 19.90, 'Excellent', { size: 'L', color: 'Black' }],
-      ['Oxford Shirt', 'J.Crew', 'BJ719', '2023-09-14', 79.50, 'Good', { size: 'M', color: 'Light blue' }],
-      ['Trucker Jacket', "Levi's", '72334-0136', '2022-11-25', 98, 'Good', { size: 'L', color: 'Medium stonewash', ebay: 1, notes: 'Broken in perfectly. Hand wash cold.' }],
-      ['Down Sweater', 'Patagonia', '84675', '2023-12-01', 279, 'Excellent', { size: 'L', color: 'Black', ebay: 1 }],
-      ['Tech Fleece Hoodie', 'Nike', 'FB7921-010', '2024-10-10', 130, 'Like new', { size: 'L', color: 'Black', ebay: 1 }],
-      ['501 Original Jeans', "Levi's", '00501-0193', '2024-01-20', 69.50, 'Good', { size: '32 × 32', color: 'Rinse' }]
-    ],
-    sneakers: [
-      ["Air Force 1 '07", 'Nike', 'CW2288-111', '2024-05-12', 115, 'Good', { size: 'US 10.5', color: 'White', ebay: 1 }],
-      ['Air Jordan 1 Retro High OG', 'Jordan', 'DZ5485-612', '2022-11-19', 180, 'New', { size: 'US 10.5', color: 'Varsity Red', ebay: 1, notes: 'Deadstock. Original box and receipt in the closet.' }],
-      ['990v6', 'New Balance', 'M990GL6', '2023-08-03', 199.99, 'Good', { size: 'US 10.5', color: 'Grey', ebay: 1 }],
-      ['Samba OG', 'adidas', 'B75806', '2024-06-22', 100, 'Like new', { size: 'US 10.5', color: 'White / Black', ebay: 1 }],
-      ['Dunk Low Retro', 'Nike', 'DD1391-100', '2023-02-11', 110, 'Worn', { size: 'US 10.5', color: 'White / Black', ebay: 1 }],
-      ['Gel-Kayano 14', 'ASICS', '1201A019-107', '2024-09-05', 150, 'Like new', { size: 'US 10.5', color: 'White / Silver' }]
-    ],
-    electronics: [
-      ['MacBook Pro 14"', 'Apple', 'A2992', '2024-01-05', 1999, 'Excellent', { icon: 'laptop', serial: 1, color: 'Space Black', ebay: 1, notes: 'M3 Pro, 18GB, 512GB. AppleCare+ through Jan 2027.' }],
-      ['iPhone 16 Pro', 'Apple', 'A3083', '2024-09-20', 999, 'Excellent', { icon: 'phone', serial: 1, color: 'Desert Titanium' }],
-      ['iPad Air 11"', 'Apple', 'A2902', '2024-05-15', 599, 'Like new', { icon: 'tablet', serial: 1, color: 'Blue' }],
-      ['Kindle Paperwhite', 'Amazon', 'M2L4EK', '2023-04-02', 149.99, 'Good', { icon: 'book', serial: 1 }],
-      ['Studio Display', 'Apple', 'A2525', '2023-03-10', 1599, 'Excellent', { icon: 'laptop', serial: 1, ebay: 1 }]
-    ],
-    furniture: [
-      ['Söderhamn Sofa', 'IKEA', '3-seat', '2023-06-18', 899, 'Good', { icon: 'sofa', color: 'Tonerud grey' }],
-      ['Aeron Chair', 'Herman Miller', 'Size B', '2023-07-02', 1395, 'Excellent', { icon: 'chair', serial: 1, ebay: 1 }],
-      ['Jarvis Standing Desk', 'Fully', '60 × 30', '2023-06-25', 599, 'Good', { icon: 'desk', color: 'Bamboo' }],
-      ['Akari 1A Lamp', 'Vitra', '1A', '2024-02-14', 270, 'Like new', { icon: 'lamp' }],
-      ['Kallax Shelf', 'IKEA', '4 × 4', '2022-09-10', 159.99, 'Good', { icon: 'shelf', color: 'White' }]
-    ],
-    watches: [
-      ['Apple Watch Series 10', 'Apple', 'A2999', '2024-09-20', 429, 'Excellent', { serial: 1, size: '46mm', color: 'Jet Black' }],
-      ['G-Shock DW5600E', 'Casio', 'DW5600E-1V', '2021-05-01', 54.99, 'Worn', { ebay: 1 }],
-      ['Seiko 5 Sports', 'Seiko', 'SRPD55', '2023-03-30', 295, 'Excellent', { serial: 1, ebay: 1, color: 'Black dial' }],
-      ['Marlin Hand-Wound', 'Timex', 'TW2R47900', '2022-08-08', 199, 'Good', { serial: 1 }]
-    ],
-    audio: [
-      ['AirPods Pro 2', 'Apple', 'A2931', '2023-10-01', 249, 'Good', { icon: 'headphones', serial: 1 }],
-      ['WH-1000XM5', 'Sony', 'WH1000XM5/B', '2023-07-11', 399.99, 'Excellent', { icon: 'headphones', serial: 1, ebay: 1, color: 'Black' }],
-      ['Era 100', 'Sonos', 'E10G1US1', '2023-04-15', 249, 'Excellent', { icon: 'speaker', ebay: 1 }],
-      ['AT-LP120XBT-USB', 'Audio-Technica', 'AT-LP120XBT-USB', '2022-10-02', 349, 'Good', { icon: 'disc', ebay: 1 }],
-      ['SM7B', 'Shure', 'SM7B', '2023-01-12', 399, 'Excellent', { icon: 'mic', serial: 1 }]
-    ],
-    cameras: [
-      ['X100VI', 'Fujifilm', 'X100VI', '2024-04-11', 1599, 'Excellent', { serial: 1, color: 'Silver', ebay: 1, notes: 'Waited four months for this one.' }],
-      ['α7 IV', 'Sony', 'ILCE-7M4', '2023-05-20', 2498, 'Good', { serial: 1 }],
-      ['GR III', 'Ricoh', 'GR III', '2022-06-03', 899, 'Good', { serial: 1, ebay: 1 }],
-      ['Mini 4 Pro', 'DJI', 'MT4MFS', '2024-01-28', 759, 'Like new', { icon: 'drone', serial: 1 }]
-    ],
-    games: [
-      ['PlayStation 5 Slim', 'Sony', 'CFI-2015', '2023-12-10', 499.99, 'Excellent', { serial: 1, ebay: 1 }],
-      ['Steam Deck OLED', 'Valve', '512GB', '2024-02-02', 549, 'Excellent', { serial: 1 }],
-      ['Switch OLED', 'Nintendo', 'HEG-001', '2022-12-24', 349.99, 'Good', { serial: 1, ebay: 1, color: 'White' }],
-      ['DualSense Edge', 'Sony', 'CFI-ZCP1', '2023-12-10', 199.99, 'Like new', {}]
-    ]
-  };
-  const items = [];
-  for (const [cat, list] of Object.entries(raw)) for (const [name, brand, model, purchased, price, condition, o] of list) {
-    const h = hash(name + brand);
-    items.push({
-      id: slug(brand + ' ' + name), category: cat, name, brand, model, purchased, price, condition,
-      size: o.size || '', color: o.color || '', notes: o.notes || '', icon: o.icon || '',
-      serial: o.serial ? 'SMPL-' + h.toString(36).toUpperCase().slice(0, 4) + '-' + String(h % 97).padStart(2, '0') : '',
-      ebay: o.ebay ? ebaySearch(brand, name, model) : '', photo: null, sample: true
-    });
-  }
-  return { v: 1, sample: true, categories: cats, items };
-}
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
 
-/* ---------- On-device storage (IndexedDB) ---------- */
-const DB = {
-  db: null,
+/* ---------- Supabase ---------- */
+let sb = null, user = null, S = null, lastLoad = 0, busy = false;
+try {
+  sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' } });
+} catch (e) { sb = null; }
+
+const fromCat = r => ({ id: r.id, name: r.name, icon: r.icon || 'package', hue: r.hue ?? 212, position: r.position ?? 0 });
+const fromItem = (r, url) => ({
+  id: r.id, category: r.category_id, name: r.name, brand: r.brand || '', model: r.model || '', serial: r.serial || '',
+  size: r.size || '', color: r.color || '', purchased: r.purchased || '', price: r.price ?? '', condition: r.condition || '',
+  ebay: r.ebay || '', notes: r.notes || '', photo_path: r.photo_path || null, photo: url || null, icon: ''
+});
+const cacheKey = () => 'stuff-cache:' + (user && user.id);
+function writeCache() { try { localStorage.setItem(cacheKey(), JSON.stringify({ at: Date.now(), S })); } catch (e) {} }
+function readCache() { try { const c = JSON.parse(localStorage.getItem(cacheKey()) || 'null'); return c && c.S && c.S.categories ? c.S : null; } catch (e) { return null; } }
+
+async function loadAll() {
+  const [c, i] = await Promise.all([
+    sb.from('categories').select('*').order('position').order('created_at'),
+    sb.from('items').select('*').order('created_at', { ascending: false })
+  ]);
+  if (c.error) throw c.error;
+  if (i.error) throw i.error;
+  const paths = i.data.map(r => r.photo_path).filter(Boolean);
+  const urls = {};
+  if (paths.length) {
+    const { data } = await sb.storage.from(BUCKET).createSignedUrls(paths, 60 * 60 * 24 * 7);
+    (data || []).forEach(d => { if (d && d.signedUrl) urls[d.path] = d.signedUrl; });
+  }
+  S = { categories: c.data.map(fromCat), items: i.data.map(r => fromItem(r, urls[r.photo_path])) };
+  lastLoad = Date.now();
+  writeCache();
+}
+async function seedStarters() {
+  if (S.categories.length || S.items.length || (user.user_metadata && user.user_metadata.seeded)) return;
+  const rows = STARTERS.map(([name, ic, hue], k) => ({ name, icon: ic, hue, position: k }));
+  const { data, error } = await sb.from('categories').insert(rows).select();
+  if (!error && data) { S.categories = data.map(fromCat).sort((a, b) => a.position - b.position); writeCache(); }
+  sb.auth.updateUser({ data: { seeded: true } }).catch(() => {});
+}
+async function refresh(silent) {
+  try { await loadAll(); }
+  catch (e) { if (!silent) toast('Couldn’t reach your stuff. Showing what was saved last.', 3500); return false; }
+  if (current.cat && !S.categories.some(c => c.id === current.cat)) { history.replaceState(null, '', location.pathname); current.cat = undefined; route(); }
+  else rerender();
+  return true;
+}
+const signPath = async p => { const { data } = await sb.storage.from(BUCKET).createSignedUrl(p, 60 * 60 * 24 * 7); return data && data.signedUrl; };
+async function uploadPhoto(itemId, dataUrl) {
+  const blob = await (await fetch(dataUrl)).blob();
+  const path = `${user.id}/${itemId}/${Date.now()}.jpg`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' });
+  if (error) throw error;
+  return path;
+}
+const removePhotos = paths => { paths = paths.filter(Boolean); if (paths.length) sb.storage.from(BUCKET).remove(paths).catch(() => {}); };
+
+/* ---------- Photos saved only on this device (before sign-in existed) ---------- */
+const Legacy = {
+  db: null, state: null,
   async open() {
     try {
       this.db = await Promise.race([
-        new Promise((res, rej) => {
-          const r = indexedDB.open('stuff', 1);
-          r.onupgradeneeded = () => r.result.createObjectStore('kv');
-          r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-        }),
-        wait(1800).then(() => { throw new Error('timeout'); })
+        new Promise((res, rej) => { const r = indexedDB.open('stuff', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }),
+        wait(1500).then(() => { throw new Error('timeout'); })
       ]);
-    } catch (e) { this.db = null; }
+      this.state = await new Promise((res, rej) => { const q = this.db.transaction('kv').objectStore('kv').get('state'); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
+    } catch (e) { this.db = null; this.state = null; }
   },
-  async get(k) {
-    if (!this.db) return null;
-    try { return await new Promise((res, rej) => { const q = this.db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
-    catch (e) { return null; }
-  },
-  async set(k, v) {
-    if (!this.db) return false;
-    try { await new Promise((res, rej) => { const t = this.db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); return true; }
-    catch (e) { return false; }
+  pending() { const s = this.state; return s && !s.imported && Array.isArray(s.items) ? s.items.filter(i => !i.sample) : []; },
+  async markImported() {
+    if (!this.db || !this.state) return;
+    this.state.imported = true;
+    try { await new Promise((res, rej) => { const t = this.db.transaction('kv', 'readwrite'); t.objectStore('kv').put(this.state, 'state'); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) {}
   }
 };
-let S = null, warned = false;
-async function save() {
-  const ok = await DB.set('state', S);
-  if (!ok && !warned) { warned = true; toast('This browser isn’t saving changes, so they’ll reset when you close the page.', 4200); }
-}
+let legacyHidden = false;
 
 /* ---------- Helpers ---------- */
 const catOf = it => S.categories.find(c => c.id === it.category) || { id: it.category, name: 'Other', icon: 'package', hue: 220 };
 const itemsIn = id => S.items.filter(i => i.category === id);
 const money = n => n == null || n === '' || isNaN(n) ? '' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: Number(n) % 1 ? 2 : 0 }).format(n);
 const fmtDate = d => { if (!d) return ''; const x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const plural = (n, w, p) => `${n} ${n === 1 ? w : (p || w + 's')}`;
 function thumb(it, cat, caption = true) {
-  if (it.photo) return `<img src="${it.photo}" alt="${esc(it.name)}" loading="lazy" decoding="async">`;
+  if (it.photo) return `<img src="${esc(it.photo)}" alt="${esc(it.name)}" loading="lazy" decoding="async">`;
   const h = cat.hue + (hash(it.id) % 25) - 12;
   return `<div class="ph" style="--h:${h}" role="img" aria-label="${esc(it.name)}">${icon(it.icon || cat.icon)}${caption ? `<span class="ph-cap">${esc(it.name)}</span>` : ''}</div>`;
 }
-function uniqueId(base, list) { let id = slug(base), n = 2; while (list.some(x => x.id === id)) id = slug(base) + '-' + n++; return id; }
 let toastT;
 function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
+const friendly = e => (navigator.onLine === false || /fetch|network/i.test(String(e && (e.message || e)))) ? 'You’re offline. Check your connection and try again.' : 'Something went wrong. Try again in a moment.';
 
 /* ---------- Routing ---------- */
-const parse = () => { const h = decodeURIComponent(location.hash.slice(1)); if (!h) return { cat: null, item: null }; const [cat, item] = h.split('.'); return { cat: cat || null, item: item || null }; };
+const isAuthHash = () => /access_token=|error_description=|error=|refresh_token=/.test(location.hash);
+const parse = () => { if (isAuthHash()) return { cat: null, item: null }; const h = decodeURIComponent(location.hash.slice(1)); if (!h) return { cat: null, item: null }; const [cat, item] = h.split('.'); return { cat: cat || null, item: item || null }; };
 let current = { cat: undefined, item: null }, pushedItem = false;
 const scrollMem = {};
 function route() {
+  if (!S) return;
   const r = parse();
-  if (r.cat && !S.categories.some(c => c.id === r.cat)) { history.replaceState(null, '', location.pathname + location.search); return route(); }
+  if (r.cat && !S.categories.some(c => c.id === r.cat)) { history.replaceState(null, '', location.pathname); return route(); }
   if (r.cat !== current.cat) {
     const dir = current.cat === undefined ? '' : (r.cat ? 'fwd' : 'back');
     scrollMem[current.cat || '_home'] = scrollY;
@@ -624,7 +668,15 @@ function route() {
   if (it) { current.item = it.id; openDetail(it); }
   else if (current.item) { current.item = null; if (sheetKind === 'detail') closeSheet(); }
 }
-function rerender() { renderView(''); if (current.item) { const it = S.items.find(i => i.id === current.item); if (it && sheetKind === 'detail') openDetail(it); } }
+function rerender() {
+  if (!S) return;
+  renderView('');
+  if (current.item) {
+    const it = S.items.find(i => i.id === current.item);
+    if (it && sheetKind === 'detail') openDetail(it);
+    else if (!it && sheetKind === 'detail') { current.item = null; closeSheet(); history.replaceState(null, '', '#' + current.cat); }
+  }
+}
 
 /* ---------- Views ---------- */
 function renderView(dir) {
@@ -632,12 +684,14 @@ function renderView(dir) {
   v.innerHTML = current.cat ? catView(current.cat) : homeView();
   v.classList.remove('fwd', 'back');
   if (dir && !reduce) { void v.offsetWidth; v.classList.add(dir); }
-  document.title = current.cat ? `${S.categories.find(c => c.id === current.cat).name} · stuff` : 'stuff';
+  const c = current.cat && S.categories.find(x => x.id === current.cat);
+  document.title = c ? `${c.name} · stuff` : 'stuff';
   onScroll();
 }
 function homeView() {
-  const n = S.items.length;
-  const note = S.sample ? `<div class="note"><p><strong>These are sample items.</strong> Tap the pencil to add your own. Everything stays on this device.</p><button class="linkbtn" data-act="clear-samples">Clear samples</button></div>` : '';
+  const n = S.items.length, pend = Legacy.pending().length;
+  const initial = (user && user.email || '?').trim()[0] || '?';
+  const note = pend && !legacyHidden ? `<div class="note"><p><strong>${plural(pend, 'item is', 'items are')} saved only on this device.</strong> Move ${pend === 1 ? 'it' : 'them'} to your account so ${pend === 1 ? 'it shows' : 'they show'} up everywhere.</p><button class="linkbtn" data-act="import">Move to account</button></div>` : '';
   const tiles = S.categories.map(c => {
     const k = itemsIn(c.id).length;
     return `<a class="tile" href="#${c.id}" data-cat="${c.id}" style="--h:${c.hue}">
@@ -645,7 +699,8 @@ function homeView() {
       ${icon(c.icon, 'tile-art')}<span class="edit-badge" aria-hidden="true">${icon('pencil')}</span></a>`;
   }).join('');
   const empty = !S.categories.length ? `<div class="empty">${icon('package')}<p>No categories yet. Tap the pencil, then New category.</p></div>` : '';
-  return `<header class="hero wrap"><h1 class="large">stuff</h1><p class="sub">${plural(n, 'thing')} · ${plural(S.categories.length, 'category').replace('categorys', 'categories')}</p></header>
+  return `<header class="hero wrap hero-row"><div><h1 class="large">stuff</h1><p class="sub">${plural(n, 'thing')} · ${plural(S.categories.length, 'category', 'categories')}</p></div>
+      <button class="avatar" data-act="account" aria-label="Account">${esc(initial)}</button></header>
     <div class="wrap">${note}${empty}<div class="tiles">${tiles}
     <button class="tile tile-new edit-only" data-act="new-cat">${icon('plus')}New category</button></div></div>`;
 }
@@ -655,9 +710,12 @@ function catView(id) {
   const cells = list.map(it => `<a class="cell" href="#${c.id}.${it.id}" data-item="${it.id}" aria-label="${esc(it.name)}">${thumb(it, c)}</a>`).join('');
   const add = `<button class="cell cell-add edit-only" data-act="new-item">${icon('plus')}Add</button>`;
   const empty = !list.length ? `<div class="empty">${icon(c.icon)}<p>Nothing in ${esc(c.name)} yet.<br>Tap the pencil, then Add.</p></div>` : '';
-  return `<div class="navbar" id="navbar"><div class="wrap navrow"><a class="back" href="#" data-act="home">${icon('back')}stuff</a><span class="navtitle">${esc(c.name)}</span><span></span></div></div>
+  return `<div class="navbar" id="navbar"><div class="wrap navrow"><a class="back" href="#">${icon('back')}stuff</a><span class="navtitle">${esc(c.name)}</span><span></span></div></div>
     <header class="wrap cathead"><h1 class="large">${esc(c.name)}</h1><p class="sub">${plural(list.length, 'item')}${total ? ' · ' + money(total) + ' spent' : ''}</p></header>
     <div class="wrap">${empty}<div class="grid" style="--h:${c.hue}">${add}${cells}</div></div>`;
+}
+function errorView() {
+  $('#view').innerHTML = `<header class="hero wrap"><h1 class="large">stuff</h1></header><div class="wrap"><div class="empty">${icon('cloudOff')}<p>Couldn’t load your stuff.<br>Check your connection, then try again.</p><p><button class="linkbtn" data-act="retry">Try again</button></p></div></div>`;
 }
 function onScroll() { const n = $('#navbar'); if (n) n.classList.toggle('scrolled', scrollY > 44); }
 addEventListener('scroll', onScroll, { passive: true });
@@ -685,6 +743,7 @@ function closeSheet() {
   lastFocus && lastFocus.focus && lastFocus.focus({ preventScroll: true });
 }
 function dismiss() {
+  if (busy) return;
   if (sheetKind === 'detail' || (current.item && sheetKind)) {
     if (pushedItem) { pushedItem = false; history.back(); }
     else { history.replaceState(null, '', '#' + current.cat); current.item = null; closeSheet(); }
@@ -703,7 +762,7 @@ function detailHTML(it) {
   <div class="detail">
     <div class="media">${thumb(it, c, false)}</div>
     <div class="detail-info">
-      <div class="title-block"><p class="eyebrow">${esc(c.name)}${it.sample ? ' · Sample' : ''}</p><h2>${esc(it.name)}</h2>${it.brand ? `<p>${esc(it.brand)}</p>` : ''}</div>
+      <div class="title-block"><p class="eyebrow">${esc(c.name)}</p><h2>${esc(it.name)}</h2>${it.brand ? `<p>${esc(it.brand)}</p>` : ''}</div>
       ${it.ebay ? `<a class="cta" href="${esc(it.ebay)}" target="_blank" rel="noopener">View on eBay ${icon('ext')}</a>` : `<p class="no-listing">No eBay listing yet.</p>`}
       ${rows.length ? `<dl class="group">${rows.map(([k, v]) => `<div class="kv"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
       ${it.notes ? `<div class="notes"><h3>Notes</h3><p>${esc(it.notes)}</p></div>` : ''}
@@ -711,6 +770,20 @@ function detailHTML(it) {
   </div>`;
 }
 function openDetail(it) { openSheet(detailHTML(it), 'detail', it.name); }
+
+/* ---------- Account ---------- */
+function openAccount() {
+  const email = user && user.email || '';
+  const pend = Legacy.pending().length;
+  openSheet(`<div class="sheet-head"><span></span><strong>Account</strong><button class="txt strong" data-act="close" data-autofocus>Done</button></div>
+    <div class="account">
+      <div><div class="avatar big" aria-hidden="true">${esc(email.trim()[0] || '?')}</div><h2>${esc(email)}</h2><p class="sub">${plural(S.items.length, 'thing')} · ${plural(S.categories.length, 'category', 'categories')}</p></div>
+      <p class="hint">Your stuff syncs to every device where you sign in with this email. Only you can see it.</p>
+      ${pend ? `<button class="plain-btn" data-act="import">Move ${plural(pend, 'item')} from this device</button>` : ''}
+      <button class="plain-btn" data-act="refresh">Refresh</button>
+      <button class="plain-btn danger" data-act="signout">Sign Out</button>
+    </div>`, 'account', 'Account');
+}
 
 /* ---------- Item editor ---------- */
 let draftPhoto;
@@ -720,7 +793,7 @@ function itemEditor(it, catId) {
   const c = catOf(it);
   const f = (id, label, val, type = 'text', extra = '') => `<label class="field" for="f-${id}"><span>${label}</span><input id="f-${id}" type="${type}" value="${esc(val)}" ${extra}></label>`;
   const html = `<form id="itemForm" novalidate data-id="${isNew ? '' : it.id}">
-    <div class="sheet-head"><button type="button" class="txt" data-act="cancel-edit" data-id="${isNew ? '' : it.id}">Cancel</button><strong>${isNew ? 'New Item' : 'Edit Item'}</strong><button type="submit" class="txt strong">Save</button></div>
+    <div class="sheet-head"><button type="button" class="txt" data-act="cancel-edit" data-id="${isNew ? '' : it.id}">Cancel</button><strong>${isNew ? 'New Item' : 'Edit Item'}</strong><button type="submit" class="txt strong" id="saveBtn">Save</button></div>
     <div class="form">
       <div class="photo-pick">
         <div class="media" id="ppPreview">${thumb({ ...it, id: it.id || 'new' }, c, false)}</div>
@@ -771,26 +844,54 @@ function setPreview() {
   form.querySelector('[data-act="remove-photo"]').hidden = !draftPhoto;
   form.querySelector('label[for="f-photo"]').textContent = draftPhoto ? 'Change photo' : 'Add photo';
 }
+function setBusy(btn, on, label) {
+  busy = on;
+  if (!btn) return;
+  if (on) { btn.dataset.label = btn.innerHTML; btn.innerHTML = `<span class="spinner" aria-hidden="true"></span>`; btn.setAttribute('aria-label', label || 'Saving'); btn.disabled = true; }
+  else { btn.innerHTML = btn.dataset.label || btn.innerHTML; btn.removeAttribute('aria-label'); btn.disabled = false; }
+}
 async function saveItem(form) {
+  if (busy) return;
   const v = id => $('#f-' + id).value.trim();
   const name = v('name'), err = $('#formErr');
+  err.hidden = true;
   if (!name) { err.textContent = 'Give the item a name to save it.'; err.hidden = false; $('#f-name').focus(); return; }
   const ebay = v('ebay');
   if (ebay && !/^https?:\/\//i.test(ebay)) { err.textContent = 'The eBay link needs to start with https://'; err.hidden = false; $('#f-ebay').focus(); return; }
-  const id = form.dataset.id;
-  const data = { name, category: v('cat'), brand: v('brand'), model: v('model'), serial: v('serial'), size: v('size'), color: v('color'),
-    purchased: v('purchased'), price: v('price') === '' ? '' : Number(v('price')), condition: v('condition'), ebay, notes: v('notes'), photo: draftPhoto || null };
-  let it;
-  if (id) { it = S.items.find(i => i.id === id); Object.assign(it, data); it.sample = false; }
-  else { it = { id: uniqueId((data.brand ? data.brand + ' ' : '') + name, S.items), icon: '', ...data }; S.items.unshift(it); }
-  await save();
-  toast(id ? 'Saved' : 'Added to ' + catOf(it).name);
-  if (it.category !== current.cat || !id) {
-    closeSheet(); current.item = null;
-    if (it.category !== current.cat) location.hash = it.category; else rerender();
-    return;
+  const price = v('price');
+  if (price !== '' && isNaN(Number(price))) { err.textContent = 'Enter the price as a number, like 120 or 89.99.'; err.hidden = false; $('#f-price').focus(); return; }
+
+  const editId = form.dataset.id, id = editId || uuid();
+  const existing = editId ? S.items.find(i => i.id === editId) : null;
+  const btn = $('#saveBtn'); setBusy(btn, true);
+  try {
+    let photo_path = existing ? existing.photo_path : null, oldPath = null, photoUrl = existing ? existing.photo : null;
+    if (draftPhoto && draftPhoto.startsWith('data:')) { const p = await uploadPhoto(id, draftPhoto); oldPath = photo_path; photo_path = p; photoUrl = draftPhoto; }
+    else if (!draftPhoto) { oldPath = photo_path; photo_path = null; photoUrl = null; }
+    const row = {
+      category_id: v('cat'), name, brand: v('brand') || null, model: v('model') || null, serial: v('serial') || null,
+      size: v('size') || null, color: v('color') || null, purchased: v('purchased') || null,
+      price: price === '' ? null : Number(price), condition: v('condition') || null, ebay: ebay || null, notes: v('notes') || null, photo_path
+    };
+    const q = existing ? sb.from('items').update(row).eq('id', id).select().single() : sb.from('items').insert({ id, ...row }).select().single();
+    const { data, error } = await q;
+    if (error) throw error;
+    if (oldPath && oldPath !== photo_path) removePhotos([oldPath]);
+    const it = fromItem(data, photoUrl);
+    if (existing) Object.assign(existing, it); else S.items.unshift(it);
+    writeCache();
+    setBusy(btn, false);
+    toast(existing ? 'Saved' : 'Added to ' + catOf(it).name);
+    if (it.category !== current.cat || !existing) {
+      closeSheet(); current.item = null;
+      if (it.category !== current.cat) location.hash = it.category; else rerender();
+      return;
+    }
+    rerender(); openDetail(existing);
+  } catch (e) {
+    setBusy(btn, false);
+    err.textContent = 'Couldn’t save. ' + friendly(e); err.hidden = false;
   }
-  rerender(); openDetail(it);
 }
 
 /* ---------- Category editor ---------- */
@@ -798,7 +899,7 @@ function catEditor(c) {
   const isNew = !c; c = c || { id: '', name: '', icon: 'package', hue: HUES[S.categories.length % HUES.length] };
   const n = isNew ? 0 : itemsIn(c.id).length;
   const html = `<form id="catForm" novalidate data-id="${c.id}">
-    <div class="sheet-head"><button type="button" class="txt" data-act="close">Cancel</button><strong>${isNew ? 'New Category' : 'Edit Category'}</strong><button type="submit" class="txt strong">Save</button></div>
+    <div class="sheet-head"><button type="button" class="txt" data-act="close">Cancel</button><strong>${isNew ? 'New Category' : 'Edit Category'}</strong><button type="submit" class="txt strong" id="catSaveBtn">Save</button></div>
     <div class="form">
       <div class="group"><label class="field" for="c-name"><span>Name</span><input id="c-name" value="${esc(c.name)}" placeholder="e.g. Bags" required data-autofocus></label></div>
       <div><p class="sec-label">Icon</p><div class="group icon-pick" role="radiogroup" aria-label="Icon">${CAT_ICONS.map(ic => `<label title="${ic}"><input type="radio" name="c-icon" id="c-icon-${ic}" value="${ic}" ${ic === c.icon ? 'checked' : ''}>${icon(ic)}</label>`).join('')}</div></div>
@@ -809,19 +910,74 @@ function catEditor(c) {
   openSheet(html, 'cat', isNew ? 'New category' : 'Edit category');
 }
 async function saveCat(form) {
-  const name = $('#c-name').value.trim();
-  if (!name) { const e = $('#catErr'); e.textContent = 'Give the category a name to save it.'; e.hidden = false; return; }
+  if (busy) return;
+  const name = $('#c-name').value.trim(), e = $('#catErr');
+  e.hidden = true;
+  if (!name) { e.textContent = 'Give the category a name to save it.'; e.hidden = false; return; }
   const ic = form.querySelector('input[name="c-icon"]:checked')?.value || 'package';
   const hue = Number(form.querySelector('input[name="c-hue"]:checked')?.value || 212);
-  const id = form.dataset.id;
-  if (id) Object.assign(S.categories.find(c => c.id === id), { name, icon: ic, hue });
-  else S.categories.push({ id: uniqueId(name, S.categories), name, icon: ic, hue });
-  await save(); closeSheet(); rerender(); toast(id ? 'Saved' : 'Added ' + name);
+  const id = form.dataset.id, btn = $('#catSaveBtn');
+  setBusy(btn, true);
+  try {
+    if (id) {
+      const { data, error } = await sb.from('categories').update({ name, icon: ic, hue }).eq('id', id).select().single();
+      if (error) throw error;
+      Object.assign(S.categories.find(c => c.id === id), fromCat(data));
+    } else {
+      const position = S.categories.reduce((m, c) => Math.max(m, c.position), -1) + 1;
+      const { data, error } = await sb.from('categories').insert({ name, icon: ic, hue, position }).select().single();
+      if (error) throw error;
+      S.categories.push(fromCat(data));
+    }
+    writeCache(); setBusy(btn, false); closeSheet(); rerender(); toast(id ? 'Saved' : 'Added ' + name);
+  } catch (x) { setBusy(btn, false); e.textContent = 'Couldn’t save. ' + friendly(x); e.hidden = false; }
+}
+
+/* ---------- Move items saved only on this device ---------- */
+async function importLegacy() {
+  if (busy) return;
+  const items = Legacy.pending(); if (!items.length) return;
+  busy = true; closeSheet();
+  const oldCats = (Legacy.state.categories || []);
+  const catMap = {};
+  let done = 0, failed = 0;
+  try {
+    for (const it of items) {
+      const oc = oldCats.find(c => c.id === it.category) || { name: 'Other', icon: 'package', hue: 220 };
+      if (!catMap[oc.id || oc.name]) {
+        let nc = S.categories.find(c => c.name.trim().toLowerCase() === String(oc.name).trim().toLowerCase());
+        if (!nc) {
+          const position = S.categories.reduce((m, c) => Math.max(m, c.position), -1) + 1;
+          const { data, error } = await sb.from('categories').insert({ name: oc.name, icon: oc.icon || 'package', hue: oc.hue ?? 212, position }).select().single();
+          if (error) throw error;
+          nc = fromCat(data); S.categories.push(nc);
+        }
+        catMap[oc.id || oc.name] = nc.id;
+      }
+      toast(`Moving ${done + failed + 1} of ${items.length}…`, 60000);
+      try {
+        const id = uuid();
+        const photo_path = it.photo && String(it.photo).startsWith('data:') ? await uploadPhoto(id, it.photo) : null;
+        const num = it.price === '' || it.price == null || isNaN(Number(it.price)) ? null : Number(it.price);
+        const { error } = await sb.from('items').insert({
+          id, category_id: catMap[oc.id || oc.name], name: it.name || 'Untitled', brand: it.brand || null, model: it.model || null, serial: it.serial || null,
+          size: it.size || null, color: it.color || null, purchased: it.purchased || null, price: num, condition: it.condition || null,
+          ebay: it.ebay || null, notes: it.notes || null, photo_path
+        });
+        if (error) throw error;
+        done++;
+      } catch (e) { failed++; }
+    }
+    if (!failed) await Legacy.markImported();
+    await refresh(true);
+    toast(failed ? `Moved ${done}. ${failed} didn’t make it. Try again to finish.` : `Moved ${plural(done, 'item')} to your account`, 3600);
+  } catch (e) { toast('Couldn’t move your items. ' + friendly(e), 3600); }
+  busy = false;
 }
 
 /* ---------- Search ---------- */
 function startSearch() {
-  if (document.body.classList.contains('searching')) return;
+  if (document.body.classList.contains('searching') || !S) return;
   if (editing) setEditing(false);
   document.body.classList.add('searching'); document.body.classList.add('locked');
   renderSearch(''); const q = $('#q'); q.value = '';
@@ -853,6 +1009,94 @@ function setEditing(on) {
   if (on) toast(current.cat ? 'Tap a photo to edit it, or Add' : 'Tap a category to edit it');
 }
 
+/* ---------- Sign-in ---------- */
+let sentEmail = '', resendT = null;
+const redirectTo = () => location.origin + location.pathname;
+function showAuth(msg) {
+  document.body.classList.add('authing');
+  $('#auth').hidden = false;
+  closeSheet(); endSearch(); if (editing) setEditing(false);
+  $('#authStep1').hidden = false; $('#authStep2').hidden = true;
+  const e = $('#emailErr'); if (msg) { e.textContent = msg; e.hidden = false; } else e.hidden = true;
+  setTimeout(() => $('#a-email').focus(), 50);
+}
+function hideAuth() { document.body.classList.remove('authing'); $('#auth').hidden = true; }
+function startResendTimer() {
+  const b = $('#resendBtn'); let s = 60; b.disabled = true;
+  clearInterval(resendT);
+  const tick = () => { b.textContent = s > 0 ? `Resend in ${s}s` : 'Resend email'; if (s <= 0) { b.disabled = false; clearInterval(resendT); } s--; };
+  tick(); resendT = setInterval(tick, 1000);
+}
+async function sendLink(email) {
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo(), shouldCreateUser: true } });
+  if (error) throw error;
+}
+const authMsg = e => {
+  const m = String(e && (e.message || e) || '');
+  if (/rate|too many|security purposes/i.test(m)) return 'Too many emails sent. Wait a minute and try again.';
+  if (/invalid.*email|email.*invalid/i.test(m)) return 'That email doesn’t look right. Check it and try again.';
+  if (/expired|invalid.*(otp|token)|token.*(invalid|expired)/i.test(m)) return 'That code is wrong or expired. Check the latest email, or resend.';
+  return friendly(e);
+};
+$('#emailForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#a-email').value.trim(), err = $('#emailErr'), btn = $('#emailBtn');
+  err.hidden = true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Enter your email address, like you@example.com.'; err.hidden = false; return; }
+  setBusy(btn, true, 'Sending');
+  try {
+    await sendLink(email);
+    sentEmail = email; $('#sentTo').textContent = email;
+    $('#authStep1').hidden = true; $('#authStep2').hidden = false; $('#codeErr').hidden = true; $('#a-code').value = '';
+    startResendTimer();
+    setTimeout(() => $('#a-code').focus(), 50);
+  } catch (x) { err.textContent = authMsg(x); err.hidden = false; }
+  setBusy(btn, false);
+});
+$('#codeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const token = $('#a-code').value.replace(/\D/g, ''), err = $('#codeErr'), btn = $('#codeBtn');
+  err.hidden = true;
+  if (token.length < 6) { err.textContent = 'Enter the code from the email.'; err.hidden = false; return; }
+  setBusy(btn, true, 'Signing in');
+  try {
+    const { data, error } = await sb.auth.verifyOtp({ email: sentEmail, token, type: 'email' });
+    if (error) throw error;
+    setBusy(btn, false);
+    if (data && data.session && !user) enter(data.session.user);
+  } catch (x) { setBusy(btn, false); err.textContent = authMsg(x); err.hidden = false; }
+});
+
+let entering = false;
+async function enter(u) {
+  if (entering || (user && user.id === u.id && S)) return;
+  entering = true;
+  user = u; hideAuth();
+  const cached = readCache();
+  if (cached) { S = cached; current = { cat: undefined, item: null }; route(); }
+  else $('#view').innerHTML = `<div class="loading-grid"><span class="spinner" aria-label="Loading"></span></div>`;
+  await Legacy.open();
+  try {
+    await loadAll();
+    await seedStarters();
+    if (!cached) current = { cat: undefined, item: null };
+    current.cat === undefined ? route() : rerender();
+  } catch (e) {
+    if (!cached) errorView(); else toast('You’re offline. Showing what was saved last.', 3200);
+  }
+  entering = false;
+}
+async function signOut() {
+  if (busy) return;
+  try { localStorage.removeItem(cacheKey()); } catch (e) {}
+  closeSheet();
+  await sb.auth.signOut().catch(() => {});
+  user = null; S = null; current = { cat: undefined, item: null };
+  history.replaceState(null, '', location.pathname);
+  $('#view').innerHTML = '';
+  showAuth();
+}
+
 /* ---------- Events ---------- */
 document.addEventListener('click', async e => {
   const a = e.target.closest('[data-act], .tile[data-cat], .cell[data-item]');
@@ -866,8 +1110,20 @@ document.addEventListener('click', async e => {
   }
   switch (act) {
     case 'close': dismiss(); break;
+    case 'account': openAccount(); break;
+    case 'signout': signOut(); break;
+    case 'refresh': { closeSheet(); const ok = await refresh(false); if (ok) toast('Up to date'); break; }
+    case 'retry': enter(user); break;
+    case 'import': importLegacy(); break;
+    case 'resend': {
+      a.disabled = true;
+      try { await sendLink(sentEmail); toast('Sent another email'); startResendTimer(); }
+      catch (x) { const er = $('#codeErr'); er.textContent = authMsg(x); er.hidden = false; a.disabled = false; }
+      break;
+    }
+    case 'change-email': $('#authStep2').hidden = true; $('#authStep1').hidden = false; $('#a-email').focus(); break;
     case 'edit-item': itemEditor(S.items.find(i => i.id === a.dataset.id)); break;
-    case 'cancel-edit': { const it = a.dataset.id && S.items.find(i => i.id === a.dataset.id); if (it && current.item === it.id) openDetail(it); else closeSheet(); break; }
+    case 'cancel-edit': { if (busy) break; const it = a.dataset.id && S.items.find(i => i.id === a.dataset.id); if (it && current.item === it.id) openDetail(it); else closeSheet(); break; }
     case 'new-item': itemEditor(null, current.cat); break;
     case 'new-cat': catEditor(null); break;
     case 'remove-photo': draftPhoto = null; setPreview(); break;
@@ -877,16 +1133,29 @@ document.addEventListener('click', async e => {
       catch (_) { const r = document.createRange(); r.selectNodeContents(a.previousElementSibling); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Copy it from here.'); }
       break;
     }
-    case 'delete-item': case 'delete-cat': case 'clear-samples': {
-      if (!a.classList.contains('armed')) { a.classList.add('armed'); a.dataset.label = a.textContent; a.textContent = act === 'clear-samples' ? 'Tap again to clear' : 'Tap again to delete'; setTimeout(() => { if (a.isConnected) { a.classList.remove('armed'); a.textContent = a.dataset.label; } }, 3500); break; }
-      if (act === 'delete-item') {
-        S.items = S.items.filter(i => i.id !== a.dataset.id); await save();
-        current.item = null; closeSheet(); history.replaceState(null, '', '#' + current.cat); pushedItem = false; rerender(); toast('Deleted');
-      } else if (act === 'delete-cat') {
-        const id = a.dataset.id; S.categories = S.categories.filter(c => c.id !== id); S.items = S.items.filter(i => i.category !== id); await save();
-        closeSheet(); rerender(); toast('Deleted');
-      } else {
-        S.items = S.items.filter(i => !i.sample); S.sample = false; await save(); rerender(); toast('Samples cleared');
+    case 'delete-item': case 'delete-cat': {
+      if (busy) break;
+      if (!a.classList.contains('armed')) { a.classList.add('armed'); a.dataset.label = a.textContent; a.textContent = 'Tap again to delete'; setTimeout(() => { if (a.isConnected && !busy) { a.classList.remove('armed'); a.textContent = a.dataset.label; } }, 3500); break; }
+      setBusy(a, true, 'Deleting');
+      try {
+        if (act === 'delete-item') {
+          const it = S.items.find(i => i.id === a.dataset.id);
+          const { error } = await sb.from('items').delete().eq('id', it.id);
+          if (error) throw error;
+          removePhotos([it.photo_path]);
+          S.items = S.items.filter(i => i.id !== it.id); writeCache(); busy = false;
+          current.item = null; closeSheet(); history.replaceState(null, '', '#' + current.cat); pushedItem = false; rerender(); toast('Deleted');
+        } else {
+          const id = a.dataset.id, paths = itemsIn(id).map(i => i.photo_path);
+          const { error } = await sb.from('categories').delete().eq('id', id);
+          if (error) throw error;
+          removePhotos(paths);
+          S.categories = S.categories.filter(c => c.id !== id); S.items = S.items.filter(i => i.category !== id); writeCache(); busy = false;
+          closeSheet(); rerender(); toast('Deleted');
+        }
+      } catch (x) {
+        setBusy(a, false); a.classList.remove('armed'); a.textContent = a.dataset.label || 'Delete';
+        toast('Couldn’t delete. ' + friendly(x), 3200);
       }
       break;
     }
@@ -898,7 +1167,7 @@ $('#btnClose').innerHTML = icon('x');
 $('#btnEdit').innerHTML = icon('pencil');
 $('#btnSearch').addEventListener('click', startSearch);
 $('#btnClose').addEventListener('click', endSearch);
-$('#btnEdit').addEventListener('click', () => { if (sheetKind) return; setEditing(!editing); });
+$('#btnEdit').addEventListener('click', () => { if (sheetKind || !S) return; setEditing(!editing); });
 $('#q').addEventListener('input', e => renderSearch(e.target.value));
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 $('#scrim').addEventListener('click', dismiss);
@@ -907,9 +1176,8 @@ document.addEventListener('keydown', e => {
   if (sheetKind) dismiss(); else if (document.body.classList.contains('searching')) endSearch(); else if (editing) setEditing(false);
 });
 document.addEventListener('submit', e => {
-  e.preventDefault();
-  if (e.target.id === 'itemForm') saveItem(e.target);
-  if (e.target.id === 'catForm') saveCat(e.target);
+  if (e.target.id === 'itemForm') { e.preventDefault(); saveItem(e.target); }
+  if (e.target.id === 'catForm') { e.preventDefault(); saveCat(e.target); }
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'f-cat') setPreview();
@@ -921,14 +1189,19 @@ document.addEventListener('change', async e => {
   }
 });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('label[for="f-photo"]')) { e.preventDefault(); $('#f-photo').click(); } });
-addEventListener('hashchange', () => { if (!parse().item) pushedItem = false; route(); });
+addEventListener('hashchange', () => { if (isAuthHash()) return; if (!parse().item) pushedItem = false; route(); });
+
+/* Pick up changes made on other devices when the app comes back into view */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && user && S && !busy && Date.now() - lastLoad > 15000 && sheetKind !== 'edit' && sheetKind !== 'cat') refresh(true);
+});
 
 /* Swipe the sheet down to close (phones) */
 (() => {
   const sh = $('#sheet'), body = $('#sheetBody');
   let y0 = null, dy = 0;
   sh.addEventListener('touchstart', e => {
-    if (innerWidth >= 820 || e.target.closest('input, textarea, select')) return;
+    if (innerWidth >= 820 || busy || e.target.closest('input, textarea, select')) return;
     if (body.scrollTop > 0 && !e.target.closest('.grabber, .sheet-head')) return;
     y0 = e.touches[0].clientY; dy = 0;
   }, { passive: true });
@@ -946,14 +1219,28 @@ addEventListener('hashchange', () => { if (!parse().item) pushedItem = false; ro
 /* ---------- Boot ---------- */
 (async () => {
   const minShow = wait(reduce ? 500 : 1750);
-  await DB.open();
-  const stored = await DB.get('state');
-  S = stored && stored.categories ? stored : seed();
-  if (!stored) save();
-  route();
+  const L = $('#loader');
+  const done = () => { L.classList.add('done'); setTimeout(() => L.remove(), 650); };
+  if (!sb) {
+    await minShow; done();
+    $('#view').innerHTML = `<header class="hero wrap"><h1 class="large">stuff</h1></header><div class="wrap"><div class="empty">${icon('cloudOff')}<p>stuff couldn’t start.<br>Check your connection, then reload the page.</p></div></div>`;
+    return;
+  }
+  let linkErr = '';
+  if (isAuthHash()) {
+    const p = new URLSearchParams(location.hash.slice(1));
+    if (p.get('error')) linkErr = /expired/i.test(p.get('error_code') || p.get('error_description') || '') ? 'That sign-in link expired. Enter your email to get a new one.' : 'That sign-in link didn’t work. Enter your email to get a new one.';
+  }
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch (e) {}
+  if (isAuthHash()) history.replaceState(null, '', location.pathname);
+  sb.auth.onAuthStateChange((ev, s) => {
+    if (ev === 'SIGNED_IN' && s && !user) setTimeout(() => enter(s.user), 0);
+    if (ev === 'SIGNED_OUT' && user) setTimeout(() => { user = null; S = null; $('#view').innerHTML = ''; showAuth(); }, 0);
+  });
   await minShow;
-  const L = $('#loader'); L.classList.add('done');
-  setTimeout(() => L.remove(), 650);
+  if (session) { enter(session.user); done(); }
+  else { showAuth(linkErr); done(); }
 })();
 })();
 </script>
