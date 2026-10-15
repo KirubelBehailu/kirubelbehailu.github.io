@@ -462,9 +462,9 @@ body.authing #bar, body.authing #view { display: none; }
 
     <div class="auth-step" id="authStep2" hidden>
       <h1>Check your email</h1>
-      <p class="lede">We sent a sign-in link to <strong id="sentTo"></strong>. Open it on this device.</p>
+      <p class="lede">We sent a sign-in link and code to <strong id="sentTo"></strong>. Tap the link on this device, or type the code below.</p>
       <form id="codeForm" novalidate>
-        <p class="sec-label" style="margin-left:16px">Or enter the code from the email</p>
+        <p class="sec-label" style="margin-left:16px">Code from the email</p>
         <div class="group"><label class="field" for="a-code"><input id="a-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code" aria-label="Code from the email"></label></div>
         <button class="cta" type="submit" id="codeBtn">Sign in</button>
         <p class="err" id="codeErr" hidden></p>
@@ -1033,7 +1033,9 @@ async function sendLink(email) {
 }
 const authMsg = e => {
   const m = String(e && (e.message || e) || '');
-  if (/rate|too many|security purposes/i.test(m)) return 'Too many emails sent. Wait a minute and try again.';
+  const secs = m.match(/after (\d+) seconds?/i);
+  if (secs) return `Wait ${secs[1]} seconds, then try again.`;
+  if (/rate|too many/i.test(m)) return 'Too many sign-in emails right now. Try again in a little while.';
   if (/invalid.*email|email.*invalid/i.test(m)) return 'That email doesn’t look right. Check it and try again.';
   if (/expired|invalid.*(otp|token)|token.*(invalid|expired)/i.test(m)) return 'That code is wrong or expired. Check the latest email, or resend.';
   return friendly(e);
